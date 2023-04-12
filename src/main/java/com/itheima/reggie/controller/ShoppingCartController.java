@@ -6,10 +6,10 @@ import com.itheima.reggie.common.R;
 import com.itheima.reggie.entity.ShoppingCart;
 import com.itheima.reggie.service.ShoppingCartService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/shoppingCart")
@@ -18,6 +18,37 @@ public class ShoppingCartController {
     @Autowired
     private ShoppingCartService shoppingCartService;
 
+    @PostMapping("/sub")
+    public R<String> sub(@RequestBody ShoppingCart shoppingCart){
+
+        LambdaQueryWrapper<ShoppingCart> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ShoppingCart::getUserId,BaseContext.getCurrentId());
+        queryWrapper.eq(ShoppingCart::getDishId,shoppingCart.getDishId());
+
+        ShoppingCart cart = shoppingCartService.getOne(queryWrapper);
+        if(cart!=null){
+            cart.setNumber(cart.getNumber()-1);
+            if(cart.getNumber()<=0){
+                shoppingCartService.removeById(cart);
+            }else{
+                shoppingCartService.updateById(cart);
+            }
+
+            return R.success("成功");
+        }else{
+            return R.error("Not Found");
+        }
+
+
+    }
+
+    @DeleteMapping("/clean")
+    public R<String> clean(){
+        LambdaQueryWrapper<ShoppingCart> queryWrapper = new LambdaQueryWrapper();
+        queryWrapper.eq(ShoppingCart::getUserId,BaseContext.getCurrentId());
+        shoppingCartService.remove(queryWrapper);
+        return R.success("成功");
+    }
     @PostMapping("/add")
     public R<ShoppingCart> add(@RequestBody ShoppingCart shoppingCart){
 
@@ -41,15 +72,21 @@ public class ShoppingCartController {
             shoppingCartService.updateById(cartServiceOne);
         }else{
             shoppingCart.setNumber(1);
+            shoppingCart.setCreateTime(LocalDateTime.now());
             shoppingCartService.save(shoppingCart);
         }
 
         return R.success(cartServiceOne);
 
+    }
 
-//        查询当前菜品或者套餐是否在购物中
+    @GetMapping("/list")
+    public R<List<ShoppingCart>> list(){
+        LambdaQueryWrapper<ShoppingCart> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ShoppingCart::getUserId,BaseContext.getCurrentId());
+        queryWrapper.orderByAsc(ShoppingCart::getCreateTime);
 
-//        如果不存在，添加到购物车，数目默认1
-        return null;
+        List<ShoppingCart> list = shoppingCartService.list(queryWrapper);
+        return R.success(list);
     }
 }
