@@ -28,11 +28,13 @@ public class LoginCheckFilter implements Filter {
         String requestURI = request.getRequestURI();
         log.info("拦截到请求 {}",requestURI);
         String[] urls = new String[]{
-                "/employee/login",
-                "employee/logout",
-                "/backend/**",
-                "/frontend/**",
-                "/common/**"
+                "/employee/login",//登录 放行
+                "/employee/logout",
+                "/backend/**",  //后端静态资源
+                "/front/**",     //前端静态资源
+                "/common/**",
+                "/user/sendMsg",//移动端发送短息
+                "/user/login"   //移动端登录
         };
 
 //        判断是否需要处理
@@ -52,6 +54,20 @@ public class LoginCheckFilter implements Filter {
             filterChain.doFilter(request,response);
             return;
         }
+
+
+        if(request.getSession().getAttribute("user")!=null){
+
+            log.info("用户已登录，用户id为；{}",request.getSession().getAttribute("user"));
+
+            //获取Id
+            Long userId= (Long) request.getSession().getAttribute("user");
+            BaseContext.setCurrentId(userId);
+
+            filterChain.doFilter(request,response);
+            return;
+        }
+
 
         log.info("用户未登录");
 //        如果未登录
